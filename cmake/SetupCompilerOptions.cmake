@@ -275,18 +275,22 @@ blt_append_custom_compiler_flag(
      XL       "qhalt=w"       # i info, w warning, e error, s severe (default)
      )
 
-#
-# Modify flags to avoid static linking runtime issues on windows.
-# (adapted from RAJA)
-#
 
-if ( COMPILER_FAMILY_IS_MSVC AND NOT BUILD_SHARED_LIBS )
+# Attempt to fix some windows flags
+if ( COMPILER_FAMILY_IS_MSVC )
     foreach(flag_var
             CMAKE_CXX_FLAGS CMAKE_CXX_FLAGS_DEBUG CMAKE_CXX_FLAGS_RELEASE
             CMAKE_CXX_FLAGS_MINSIZEREL CMAKE_CXX_FLAGS_RELWITHDEBINFO)
-        if(${flag_var} MATCHES "/MD")
+        
+        # Avoid static linking runtime issues on windows (adapted from RAJA)
+        if(NOT BUILD_SHARED_LIBS AND ${flag_var} MATCHES "/MD")
             string(REGEX REPLACE "/MD" "/MT" ${flag_var} "${${flag_var}}")
-        endif(${flag_var} MATCHES "/MD")
+        endif()
+
+        # Clear runtime check flags -- incompatible with optimization flags
+        if(${flag_var} MATCHES "/RTC")
+            STRING (REGEX REPLACE "/RTC[^ ]*" "" ${flag_var} "${${flag_var}}")
+        endif()
     endforeach(flag_var)
 endif()
 
